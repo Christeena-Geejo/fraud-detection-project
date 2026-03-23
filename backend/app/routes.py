@@ -4,6 +4,7 @@ from app.services.preprocess import preprocess
 from app.services.feature_engineering import create_features
 from app.services.anomaly_detector import detect_anomalies
 from app.utils.file_handler import save_file, save_output
+from flask_cors import CORS
 
 bp = Blueprint('main', __name__)
 
@@ -23,8 +24,15 @@ def upload():
 
     output_path = save_output(fraud_df, "fraud_output.csv")
 
+    fraud_df = fraud_df.fillna('N/A')
+    fraud_df['flag'] = fraud_df['Anomaly']             
+    fraud_df['score'] = fraud_df['Score']
+    fraud_df['risk'] = fraud_df['Risk'] 
+
     return jsonify({
-        "message": "Fraud detection complete",
-        "fraud_count": len(fraud_df),
-        "output_file": output_path
+    "message": "Fraud detection complete",
+    "fraud_count": len(fraud_df),
+    "total_records": len(df),
+
+    "data": fraud_df.head(50).to_dict(orient='records')
     })

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Momentum — Anomaly Explorer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <header class="topbar" id="topbar"></header>
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <main class="main">
+    <div class="page-header">
+      <div class="breadcrumb">MOMENTUM / <a href="dashboard.html">DASHBOARD</a> / EXPLORER</div>
+      <h1>Anomaly Explorer</h1>
+      <p>Browse and filter flagged transactions by anomaly category.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start">
+
+      <!-- Left: anomaly type list -->
+      <div>
+        <div class="panel">
+          <div class="panel-header">
+            Anomaly Types
+            <button class="btn btn-ghost btn-sm" id="clear-type" style="display:none">Clear</button>
+          </div>
+          <div id="type-list" style="padding:8px 0"></div>
+        </div>
+
+        <div class="panel mt16">
+          <div class="panel-header">Filter by Risk</div>
+          <div style="padding:12px 16px;display:flex;flex-direction:column;gap:6px">
+            <label class="flex align-center gap8" style="cursor:pointer;font-size:13px">
+              <input type="checkbox" class="risk-check" value="high" checked> <span class="risk high">HIGH</span>
+            </label>
+            <label class="flex align-center gap8" style="cursor:pointer;font-size:13px">
+              <input type="checkbox" class="risk-check" value="medium" checked> <span class="risk medium">MEDIUM</span>
+            </label>
+            <label class="flex align-center gap8" style="cursor:pointer;font-size:13px">
+              <input type="checkbox" class="risk-check" value="low" checked> <span class="risk low">LOW</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: transactions for selected type -->
+      <div>
+        <!-- Description card (shown when type selected) -->
+        <div class="panel mb16" id="type-desc-card" style="display:none;border-color:var(--accent)">
+          <div class="panel-header" id="type-desc-title" style="color:var(--accent2)"></div>
+          <div class="panel-body text-sm" id="type-desc-body" style="color:var(--text2);line-height:1.8"></div>
+        </div>
+
+        <!-- Transaction table -->
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <span class="title" id="table-label">All Flagged Transactions</span>
+            <span style="flex:1"></span>
+            <span id="exp-count" class="text-faint text-sm"></span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Transaction ID</th>
+                  <th>Account</th>
+                  <th>Date &amp; Time</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Score</th>
+                  <th>Risk</th>
+                  <th>Anomaly Types</th>
+                </tr>
+              </thead>
+              <tbody id="exp-body"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="exp-pagination"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script>
+  document.getElementById('topbar').innerHTML = Utils.topbar('ready');
+  document.getElementById('sidebar').innerHTML = Utils.sidebar('explorer');
+
+  const flagged = MOCK_TRANSACTIONS.filter(t => t.flag === 1);
+  let selectedType = null;
+  let page = 1;
+  const PER = 8;
+
+  /* Build type list */
+  const maxCount = Math.max(...ANOMALY_TYPES.map(a => a.count));
+  document.getElementById('type-list').innerHTML = ANOMALY_TYPES
+    .sort((a,b) => b.count - a.count)
+    .map(a => `
+      <div class="type-item" data-type="${a.name}" style="
+        padding:10px 16px;cursor:pointer;border-left:2px solid transparent;
+        transition:all .1s;display:flex;align-items:center;gap:10px
+      ">
+        <div style="flex:1">
+          <div style="font-size:12.5px;color:var(--text)">${a.name}</div>
+          <div style="height:3px;background:var(--bg4);border-radius:2px;margin-top:5px;overflow:hidden">
+            <div style="height:100%;width:${a.count/maxCount*100}%;background:${a.risk==='high'?'var(--accent)':a.risk==='medium'?'var(--yellow)':'var(--green)'};border-radius:2px"></div>
+          </div>
+        </div>
+        <span class="risk ${a.risk}" style="font-size:10px">${a.count}</span>
+      </div>
+    `).join('');
+
+  document.querySelectorAll('.type-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const t = el.dataset.type;
+      if (selectedType === t) {
+        selectedType = null;
+        el.style.borderLeftColor = 'transparent';
+        el.style.background = '';
+        document.getElementById('clear-type').style.display = 'none';
+        document.getElementById('type-desc-card').style.display = 'none';
+        document.getElementById('table-label').textContent = 'All Flagged Transactions';
+      } else {
+        selectedType = t;
+        document.querySelectorAll('.type-item').forEach(i => {
+          i.style.borderLeftColor = 'transparent';
+          i.style.background = '';
+        });
+        el.style.borderLeftColor = 'var(--accent)';
+        el.style.background = 'var(--accentdim)';
+        document.getElementById('clear-type').style.display = '';
+
+        const info = ANOMALY_TYPES.find(a => a.name === t);
+        if (info) {
+          document.getElementById('type-desc-card').style.display = '';
+          document.getElementById('type-desc-title').textContent = t;
+          document.getElementById('type-desc-body').textContent = info.desc;
+        }
+        document.getElementById('table-label').textContent = t;
+      }
+      page = 1;
+      render();
+    });
+  });
+
+  document.getElementById('clear-type').addEventListener('click', () => {
+    selectedType = null;
+    document.querySelectorAll('.type-item').forEach(i => {
+      i.style.borderLeftColor = 'transparent';
+      i.style.background = '';
+    });
+    document.getElementById('clear-type').style.display = 'none';
+    document.getElementById('type-desc-card').style.display = 'none';
+    document.getElementById('table-label').textContent = 'All Flagged Transactions';
+    page = 1;
+    render();
+  });
+
+  document.querySelectorAll('.risk-check').forEach(cb => cb.addEventListener('change', () => { page=1; render(); }));
+
+  function getFiltered() {
+    const risks = [...document.querySelectorAll('.risk-check:checked')].map(c => c.value);
+    return flagged.filter(t => {
+      if (!risks.includes(t.risk)) return false;
+      if (selectedType && !t.anomaly.includes(selectedType)) return false;
+      return true;
+    });
+  }
+
+  function render() {
+    const filtered = getFiltered();
+    const slice    = Utils.paginate(filtered, page, PER);
+    document.getElementById('exp-count').textContent = filtered.length + ' transactions';
+
+    document.getElementById('exp-body').innerHTML = slice.length ? slice.map(t => `
+      <tr onclick="window.location='flagged.html'" style="cursor:pointer">
+        <td class="mono">${t.id}</td>
+        <td class="mono"><a href="account.html?acc=${t.account}" onclick="event.stopPropagation()" style="color:var(--accent2);text-decoration:none">${t.account}</a></td>
+        <td class="dim">${t.date} <span class="text-faint">${t.time}</span></td>
+        <td>${t.type}</td>
+        <td class="mono">${Utils.fmt.currency(t.amount)}</td>
+        <td>
+          <div class="score-bar-wrap">
+            <div class="score-bar"><div class="score-bar-fill" style="width:${t.score}%;background:${Utils.scoreColor(t.score)}"></div></div>
+            <div class="score-val">${t.score}</div>
+          </div>
+        </td>
+        <td><span class="risk ${t.risk}">${t.risk.toUpperCase()}</span></td>
+        <td class="text-sm" style="color:var(--text2)">
+          ${t.anomaly.split(',').map(a => `<span class="tag ${selectedType && a.trim()===selectedType ? 'active' : ''}" style="margin:1px">${a.trim()}</span>`).join('')}
+        </td>
+      </tr>
+    `).join('') : `<tr><td colspan="8"><div class="empty"><div class="icon">⊘</div><p>No transactions match selection.</p></div></td></tr>`;
+
+    /* Pagination */
+    const total = Math.ceil(filtered.length / PER);
+    const pag = document.getElementById('exp-pagination');
+    if (total <= 1) { pag.innerHTML = ''; return; }
+    let html = `<span class="info">Page ${page} of ${total}</span>`;
+    html += `<button class="page-btn" onclick="goPage(${page-1})" ${page===1?'disabled':''}>‹</button>`;
+    for (let i=1; i<=total; i++) html += `<button class="page-btn ${i===page?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    html += `<button class="page-btn" onclick="goPage(${page+1})" ${page===total?'disabled':''}>›</button>`;
+    pag.innerHTML = html;
+  }
+
+  window.goPage = n => { page = n; render(); };
+  render();
+</script>
+</body>
+</html>
