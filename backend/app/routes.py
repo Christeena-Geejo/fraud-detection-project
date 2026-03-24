@@ -1,38 +1,71 @@
-from flask import Blueprint, request, jsonify
+import time
 import pandas as pd
+from flask import Blueprint, request, jsonify
+from flask_cors import cross_origin
+
 from app.services.preprocess import preprocess
 from app.services.feature_engineering import create_features
 from app.services.anomaly_detector import detect_anomalies
 from app.utils.file_handler import save_file, save_output
-from flask_cors import CORS
 
 bp = Blueprint('main', __name__)
 
-@bp.route('/upload', methods=['POST'])
+
+@bp.route('/upload', methods=['POST', 'OPTIONS'])
+@cross_origin()
 def upload():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
     file = request.files['file']
-    
-    file_path = save_file(file)
-    df = pd.read_csv(file_path)
+    if not file.filename:
+        return jsonify({'error': 'Empty filename'}), 400
 
-    df, balance_col, withdraw_col, deposit_col = preprocess(df)
-    df, features = create_features(df, balance_col, withdraw_col, deposit_col)
+    start_ms = time.time()
 
-    df = detect_anomalies(df, df[features])
+    try:
+        file_path = save_file(file)
 
-    fraud_df = df[df['Anomaly'] == 1]
+        # Read CSV or Excel
+        if file.filename.lower().endswith('.xlsx'):
+            df = pd.read_excel(file_path)
+        else:
+            df = pd.read_csv(file_path, encoding='utf-8', on_bad_lines='skip')
 
-    output_path = save_output(fraud_df, "fraud_output.csv")
+        total_records = len(df)
 
-    fraud_df = fraud_df.fillna('N/A')
-    fraud_df['flag'] = fraud_df['Anomaly']             
-    fraud_df['score'] = fraud_df['Score']
-    fraud_df['risk'] = fraud_df['Risk'] 
+        # Preprocess → feature engineering → anomaly detection
+        df, balance_col, withdraw_col, deposit_col = preprocess(df)
+        df, features = create_features(df, balance_col, withdraw_col, deposit_col)
+        df = detect_anomalies(df, df[features])
 
-    return jsonify({
-    "message": "Fraud detection complete",
-    "fraud_count": len(fraud_df),
-    "total_records": len(df),
+        processing_ms = int((time.time() - start_ms) * 1000)
 
-    "data": fraud_df.head(50).to_dict(orient='records')
-    })
+        # Save full output
+        save_output(df, "fraud_output.csv")
+
+        # Prepare response — return ALL rows so the frontend can show clean ones too
+        df_out = df.fillna('')
+
+        # Normalise column names for the frontend mapper
+        df_out['flag']  = df_out['Anomaly'].astype(int)
+        df_out['score'] = df_out['Score']          # 0-1 float; frontend converts to %
+        df_out['risk']  = df_out['Risk']            # "High Risk" / "Medium Risk" / "Low Risk"
+
+        fraud_count = int(df_out['flag'].sum())
+
+        rows = df_out.head(200).to_dict(orient='records')
+
+        return jsonify({
+            'message':       'Fraud detection complete',
+            'fraud_count':   fraud_count,
+            'total_records': total_records,
+            'filename':      file.filename,
+            'processing_ms': processing_ms,
+            'data':          rows,
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500

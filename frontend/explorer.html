@@ -21,7 +21,6 @@
 
     <div style="display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start">
 
-      <!-- Left: anomaly type list -->
       <div>
         <div class="panel">
           <div class="panel-header">
@@ -47,15 +46,12 @@
         </div>
       </div>
 
-      <!-- Right: transactions for selected type -->
       <div>
-        <!-- Description card (shown when type selected) -->
         <div class="panel mb16" id="type-desc-card" style="display:none;border-color:var(--accent)">
           <div class="panel-header" id="type-desc-title" style="color:var(--accent2)"></div>
           <div class="panel-body text-sm" id="type-desc-body" style="color:var(--text2);line-height:1.8"></div>
         </div>
 
-        <!-- Transaction table -->
         <div class="table-wrap">
           <div class="table-toolbar">
             <span class="title" id="table-label">All Flagged Transactions</span>
@@ -92,20 +88,42 @@
   document.getElementById('topbar').innerHTML = Utils.topbar('ready');
   document.getElementById('sidebar').innerHTML = Utils.sidebar('explorer');
 
-  const flagged = MOCK_TRANSACTIONS.filter(t => t.flag === 1);
+  /* Use live data */
+  const ALL_DATA = getTransactions();
+  const flagged  = ALL_DATA.filter(t => t.flag === 1);
+
+  /* Build anomaly type summary from live data */
+  const liveTypes = {};
+  flagged.forEach(t => {
+    if (!t.anomaly) return;
+    t.anomaly.split(',').forEach(a => {
+      const k = a.trim();
+      if (!k) return;
+      if (!liveTypes[k]) liveTypes[k] = { name:k, count:0, risk:'low', desc:'' };
+      liveTypes[k].count++;
+      if (t.risk === 'high')        liveTypes[k].risk = 'high';
+      else if (t.risk === 'medium' && liveTypes[k].risk !== 'high') liveTypes[k].risk = 'medium';
+    });
+  });
+
+  // Merge descriptions from ANOMALY_TYPES constant where available
+  ANOMALY_TYPES.forEach(at => {
+    if (liveTypes[at.name]) liveTypes[at.name].desc = at.desc;
+  });
+
+  const typeData = Object.keys(liveTypes).length ? Object.values(liveTypes) : ANOMALY_TYPES;
+
   let selectedType = null;
   let page = 1;
   const PER = 8;
 
-  /* Build type list */
-  const maxCount = Math.max(...ANOMALY_TYPES.map(a => a.count));
-  document.getElementById('type-list').innerHTML = ANOMALY_TYPES
-    .sort((a,b) => b.count - a.count)
+  const maxCount = Math.max(...typeData.map(a => a.count), 1);
+  document.getElementById('type-list').innerHTML = [...typeData]
+    .sort((a, b) => b.count - a.count)
     .map(a => `
       <div class="type-item" data-type="${a.name}" style="
         padding:10px 16px;cursor:pointer;border-left:2px solid transparent;
-        transition:all .1s;display:flex;align-items:center;gap:10px
-      ">
+        transition:all .1s;display:flex;align-items:center;gap:10px">
         <div style="flex:1">
           <div style="font-size:12.5px;color:var(--text)">${a.name}</div>
           <div style="height:3px;background:var(--bg4);border-radius:2px;margin-top:5px;overflow:hidden">
@@ -120,12 +138,7 @@
     el.addEventListener('click', () => {
       const t = el.dataset.type;
       if (selectedType === t) {
-        selectedType = null;
-        el.style.borderLeftColor = 'transparent';
-        el.style.background = '';
-        document.getElementById('clear-type').style.display = 'none';
-        document.getElementById('type-desc-card').style.display = 'none';
-        document.getElementById('table-label').textContent = 'All Flagged Transactions';
+        clearTypeSelection();
       } else {
         selectedType = t;
         document.querySelectorAll('.type-item').forEach(i => {
@@ -136,11 +149,13 @@
         el.style.background = 'var(--accentdim)';
         document.getElementById('clear-type').style.display = '';
 
-        const info = ANOMALY_TYPES.find(a => a.name === t);
-        if (info) {
+        const info = typeData.find(a => a.name === t);
+        if (info && info.desc) {
           document.getElementById('type-desc-card').style.display = '';
           document.getElementById('type-desc-title').textContent = t;
-          document.getElementById('type-desc-body').textContent = info.desc;
+          document.getElementById('type-desc-body').textContent  = info.desc;
+        } else {
+          document.getElementById('type-desc-card').style.display = 'none';
         }
         document.getElementById('table-label').textContent = t;
       }
@@ -149,7 +164,7 @@
     });
   });
 
-  document.getElementById('clear-type').addEventListener('click', () => {
+  function clearTypeSelection() {
     selectedType = null;
     document.querySelectorAll('.type-item').forEach(i => {
       i.style.borderLeftColor = 'transparent';
@@ -158,6 +173,10 @@
     document.getElementById('clear-type').style.display = 'none';
     document.getElementById('type-desc-card').style.display = 'none';
     document.getElementById('table-label').textContent = 'All Flagged Transactions';
+  }
+
+  document.getElementById('clear-type').addEventListener('click', () => {
+    clearTypeSelection();
     page = 1;
     render();
   });
@@ -193,19 +212,20 @@
         </td>
         <td><span class="risk ${t.risk}">${t.risk.toUpperCase()}</span></td>
         <td class="text-sm" style="color:var(--text2)">
-          ${t.anomaly.split(',').map(a => `<span class="tag ${selectedType && a.trim()===selectedType ? 'active' : ''}" style="margin:1px">${a.trim()}</span>`).join('')}
+          ${(t.anomaly || '').split(',').map(a => a.trim()).filter(Boolean).map(a =>
+            `<span class="tag ${selectedType && a===selectedType ? 'active' : ''}" style="margin:1px">${a}</span>`
+          ).join('')}
         </td>
       </tr>
-    `).join('') : `<tr><td colspan="8"><div class="empty"><div class="icon">⊘</div><p>No transactions match selection.</p></div></td></tr>`;
+    `).join('') : `<tr><td colspan="8"><div class="empty"><div class="icon">&#8856;</div><p>No transactions match selection.</p></div></td></tr>`;
 
-    /* Pagination */
     const total = Math.ceil(filtered.length / PER);
     const pag = document.getElementById('exp-pagination');
     if (total <= 1) { pag.innerHTML = ''; return; }
     let html = `<span class="info">Page ${page} of ${total}</span>`;
-    html += `<button class="page-btn" onclick="goPage(${page-1})" ${page===1?'disabled':''}>‹</button>`;
+    html += `<button class="page-btn" onclick="goPage(${page-1})" ${page===1?'disabled':''}>&#8249;</button>`;
     for (let i=1; i<=total; i++) html += `<button class="page-btn ${i===page?'active':''}" onclick="goPage(${i})">${i}</button>`;
-    html += `<button class="page-btn" onclick="goPage(${page+1})" ${page===total?'disabled':''}>›</button>`;
+    html += `<button class="page-btn" onclick="goPage(${page+1})" ${page===total?'disabled':''}>&#8250;</button>`;
     pag.innerHTML = html;
   }
 

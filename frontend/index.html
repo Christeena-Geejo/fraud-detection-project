@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Momentum — Upload & Process</title>
+  <title>Momentum — Upload &amp; Process</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -51,7 +51,7 @@
           <div class="panel-header">Input File</div>
           <div class="panel-body">
             <div class="dropzone" id="dropzone">
-              <div class="dz-icon">⬆</div>
+              <div class="dz-icon">&#8679;</div>
               <div class="dz-title">Drop CSV or Excel file here</div>
               <div class="dz-sub">or click to browse — .csv and .xlsx supported</div>
               <input type="file" id="file-input" accept=".csv,.xlsx" style="display:none">
@@ -59,45 +59,38 @@
 
             <div id="file-info" style="display:none" class="mt16">
               <div class="flex align-center gap8 mb8">
-                <span style="font-size:20px">📄</span>
+                <span style="font-size:20px">&#128196;</span>
                 <div>
                   <div id="file-name" style="font-size:13px;font-weight:500;"></div>
                   <div id="file-meta" class="text-faint text-sm"></div>
                 </div>
-                <button class="btn btn-ghost btn-sm" id="clear-btn" style="margin-left:auto">✕ Clear</button>
+                <button class="btn btn-ghost btn-sm" id="clear-btn" style="margin-left:auto">&#10005; Clear</button>
               </div>
             </div>
 
             <div class="mt16">
               <button class="btn btn-primary" id="run-btn" disabled style="width:100%;justify-content:center;padding:10px">
-                ▶ Run Pipeline
+                &#9654; Run Pipeline
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Expected format -->
         <div class="panel mt16">
           <div class="panel-header">Expected Format</div>
           <div class="panel-body">
             <p class="text-sm text-dim mb8">The file should contain these columns (order does not matter):</p>
             <table style="width:100%">
-              <thead>
-                <tr>
-                  <th>Column</th>
-                  <th>Type</th>
-                  <th>Required</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Column</th><th>Type</th><th>Required</th></tr></thead>
               <tbody>
-                <tr><td class="mono">transaction_id</td><td class="dim">string</td><td class="text-green">Yes</td></tr>
-                <tr><td class="mono">account_id</td><td class="dim">string</td><td class="text-green">Yes</td></tr>
-                <tr><td class="mono">date</td><td class="dim">YYYY-MM-DD</td><td class="text-green">Yes</td></tr>
-                <tr><td class="mono">time</td><td class="dim">HH:MM</td><td class="text-green">Yes</td></tr>
-                <tr><td class="mono">transaction_type</td><td class="dim">string</td><td class="text-green">Yes</td></tr>
-                <tr><td class="mono">amount</td><td class="dim">numeric</td><td class="text-green">Yes</td></tr>
-                <tr><td class="mono">channel</td><td class="dim">string</td><td class="text-dim">Optional</td></tr>
-                <tr><td class="mono">branch_code</td><td class="dim">string</td><td class="text-dim">Optional</td></tr>
+                <tr><td class="mono">transaction_id</td>  <td class="dim">string</td>    <td class="text-green">Yes</td></tr>
+                <tr><td class="mono">account_id</td>      <td class="dim">string</td>    <td class="text-green">Yes</td></tr>
+                <tr><td class="mono">date</td>            <td class="dim">YYYY-MM-DD</td><td class="text-green">Yes</td></tr>
+                <tr><td class="mono">time</td>            <td class="dim">HH:MM</td>     <td class="text-green">Yes</td></tr>
+                <tr><td class="mono">transaction_type</td><td class="dim">string</td>    <td class="text-green">Yes</td></tr>
+                <tr><td class="mono">amount</td>          <td class="dim">numeric</td>   <td class="text-green">Yes</td></tr>
+                <tr><td class="mono">channel</td>         <td class="dim">string</td>    <td class="text-dim">Optional</td></tr>
+                <tr><td class="mono">branch_code</td>     <td class="dim">string</td>    <td class="text-dim">Optional</td></tr>
               </tbody>
             </table>
           </div>
@@ -111,7 +104,8 @@
             Run Log
             <span id="log-status" class="tag">idle</span>
           </div>
-          <div class="panel-body" id="log-body" style="font-family:var(--mono);font-size:11.5px;color:var(--text2);min-height:180px;line-height:2">
+          <div class="panel-body" id="log-body"
+               style="font-family:var(--mono);font-size:11.5px;color:var(--text2);min-height:180px;line-height:2">
             <span class="text-faint">— Waiting for file upload —</span>
           </div>
         </div>
@@ -120,26 +114,18 @@
           <div class="panel-header">Recent Runs</div>
           <div class="panel-body" style="padding:0">
             <table style="width:100%">
-              <thead>
-                <tr>
-                  <th>File</th>
-                  <th>Date</th>
-                  <th>Flagged</th>
-                  <th></th>
-                </tr>
-              </thead>
+              <thead><tr><th>File</th><th>Date</th><th>Flagged</th><th></th></tr></thead>
               <tbody id="recent-runs"></tbody>
             </table>
           </div>
         </div>
 
-        <!-- ⚡ BACKEND note -->
         <div class="panel mt16" style="border-color:#2a2a1a">
-          <div class="panel-header" style="color:#6a6a3a">⚡ Backend Integration Note</div>
+          <div class="panel-header" style="color:#6a6a3a">&#9889; Backend Status</div>
           <div class="panel-body text-sm" style="color:#6a6a3a;line-height:1.8">
-            On "Run Pipeline", POST the file to your Flask/FastAPI endpoint.<br>
-            The backend returns a scored CSV. Save it to localStorage or pass it<br>
-            to the other pages. See <span style="font-family:var(--mono)">data.js</span> for all integration points.
+            Ensure Flask is running on <span style="font-family:var(--mono)">localhost:5000</span>.<br>
+            Run: <span style="font-family:var(--mono)">python run.py</span> from the backend folder.<br>
+            Without the backend, mock data is shown across all pages.
           </div>
         </div>
       </div>
@@ -153,7 +139,6 @@
   document.getElementById('topbar').innerHTML = Utils.topbar('idle');
   document.getElementById('sidebar').innerHTML = Utils.sidebar('upload');
 
-  /* Recent runs mock */
   const recentRuns = [
     { file:'transactions_march_2026.csv', date:'2026-03-22', flagged:20 },
     { file:'transactions_feb_2026.csv',   date:'2026-02-28', flagged:14 },
@@ -174,20 +159,17 @@
   const runBtn = document.getElementById('run-btn');
   let selectedFile = null;
 
-  dz.addEventListener('click', () => fi.click());
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-  dz.addEventListener('drop', e => {
-    e.preventDefault();
-    dz.classList.remove('dragover');
-    handleFile(e.dataTransfer.files[0]);
-  });
-  fi.addEventListener('change', () => handleFile(fi.files[0]));
+  dz.addEventListener('click',     ()  => fi.click());
+  dz.addEventListener('dragover',  e   => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', ()  => dz.classList.remove('dragover'));
+  dz.addEventListener('drop',      e   => { e.preventDefault(); dz.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
+  fi.addEventListener('change',    ()  => handleFile(fi.files[0]));
 
   function handleFile(f) {
     if (!f) return;
     if (!f.name.match(/\.(csv|xlsx)$/i)) {
-      Utils.toast('Only .csv and .xlsx files are supported.', 'error'); return;
+      Utils.toast('Only .csv and .xlsx files are supported.', 'error');
+      return;
     }
     selectedFile = f;
     document.getElementById('file-info').style.display = 'block';
@@ -206,80 +188,89 @@
     runBtn.disabled = true;
     fi.value = '';
     resetSteps();
-    clearLog();
+    document.getElementById('log-body').innerHTML = '<span class="text-faint">— Waiting for file upload —</span>';
+    document.getElementById('log-status').textContent = 'idle';
+    document.getElementById('log-status').style.color = '';
+    runBtn.textContent = '&#9654; Run Pipeline';
+    runBtn.onclick = null;
   });
 
-  /* Simulated pipeline run
-     ⚡ BACKEND: Replace this entire block with a real fetch() to your API.
-     POST the file as FormData, receive the scored CSV, store in localStorage. */
+  /* Pipeline run */
   runBtn.addEventListener('click', async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || runBtn.textContent.includes('Dashboard')) {
+      if (runBtn.textContent.includes('Dashboard')) window.location.href = 'dashboard.html';
+      return;
+    }
+
     runBtn.disabled = true;
     runBtn.textContent = '⏳ Processing…';
     document.getElementById('log-status').textContent = 'running';
-    document.getElementById('log-status').className = 'tag active';
+    document.getElementById('log-status').style.color = 'var(--yellow)';
+    document.getElementById('log-body').innerHTML = '';
 
-    const steps = [
-      { id:'validate', msg:'Validating schema — 8 required columns found.',  ms:600  },
-      { id:'validate', msg:'Missing values: 0. Duplicate rows: 2 removed.',  ms:900  },
-      { id:'process',  msg:'Feature engineering — 6 features derived.',      ms:1400 },
-      { id:'process',  msg:'Normalising numeric features.',                   ms:1800 },
-      { id:'score',    msg:'Running Isolation Forest (n_estimators=100)…',   ms:2600 },
-      { id:'score',    msg:'Scoring complete — 4217 transactions scored.',   ms:3200 },
-      { id:'done',     msg:'✓ 20 anomalies flagged. Redirect to dashboard.', ms:3800 },
-    ];
+    log('Uploading ' + selectedFile.name + ' ...');
+    setStep('validate');
+    await delay(200);
 
-    clearLog();
-    log('▶ Pipeline started — ' + selectedFile.name);
-    setStep('upload');
+    try {
+      log('POST ' + BACKEND_URL + '/upload');
+      setStep('process');
 
-    for (const s of steps) {
-      await delay(s.ms);
-      setStep(s.id);
-      log(s.msg, s.id === 'done' ? 'ok' : '');
+      const result = await fetchBackendData(selectedFile);
+      log('Server responded OK', 'ok');
+      setStep('score');
+      await delay(150);
+
+      const rows   = result.data ?? [];
+      const mapped = mapBackendToUI(rows);
+
+      localStorage.setItem('transactions', JSON.stringify(rows));
+      localStorage.setItem('run_summary',  JSON.stringify(buildRunSummary(result, mapped)));
+
+      const flagCount = result.fraud_count ?? mapped.filter(t => t.flag === 1).length;
+      log(`Done — ${flagCount} anomalies in ${result.total_records ?? rows.length} records.`, 'ok');
+      setStep('done');
+
+      document.getElementById('log-status').textContent = 'done';
+      document.getElementById('log-status').style.color = 'var(--green)';
+      Utils.toast('Analysis complete — ' + flagCount + ' anomalies found.');
+
+      runBtn.disabled = false;
+      runBtn.innerHTML = '&#9654; View Dashboard';
+      runBtn.onclick = () => { window.location.href = 'dashboard.html'; };
+
+    } catch (err) {
+      console.error(err);
+      log('ERROR: ' + err.message, 'error');
+      document.getElementById('log-status').textContent = 'error';
+      document.getElementById('log-status').style.color = 'var(--accent)';
+      Utils.toast('Backend error — check console for details.', 'error');
+      runBtn.disabled = false;
+      runBtn.textContent = '&#9654; Retry';
     }
-
-    await delay(3900);
-    document.getElementById('log-status').textContent = 'complete';
-    document.getElementById('log-status').className = 'tag active';
-    Utils.toast('Pipeline complete — 20 anomalies flagged.');
-    runBtn.textContent = '✓ Done — View Dashboard';
-    runBtn.disabled = false;
-    runBtn.onclick = () => window.location.href = 'dashboard.html';
   });
 
-  /* Log helpers */
   function log(msg, cls) {
     const b = document.getElementById('log-body');
-    if (b.querySelector('.text-faint')) b.innerHTML = '';
+    if (!msg) return;
     const line = document.createElement('div');
-    line.textContent = timestamp() + '  ' + msg;
-    if (cls === 'ok') line.style.color = 'var(--green)';
+    line.textContent = new Date().toTimeString().slice(0, 8) + '  ' + msg;
+    if (cls === 'ok')    line.style.color = 'var(--green)';
+    if (cls === 'error') line.style.color = 'var(--accent2)';
     b.appendChild(line);
     b.scrollTop = b.scrollHeight;
   }
-  function clearLog() {
-    document.getElementById('log-body').innerHTML = '';
-  }
-  function timestamp() {
-    return new Date().toTimeString().slice(0,8);
-  }
 
-  /* Step helpers */
-  const stepOrder = ['upload','validate','process','score','done'];
+  const stepOrder = ['upload', 'validate', 'process', 'score', 'done'];
   function setStep(active) {
     const idx = stepOrder.indexOf(active);
     stepOrder.forEach((s, i) => {
       const el = document.getElementById('step-' + s);
-      if (!el) return;
-      el.className = 'pipeline-step' + (i < idx ? ' done' : i === idx ? ' active' : '');
+      if (el) el.className = 'pipeline-step' + (i < idx ? ' done' : i === idx ? ' active' : '');
     });
   }
   function resetSteps() {
-    stepOrder.forEach(s => {
-      const el = document.getElementById('step-' + s);
-      if (el) el.className = 'pipeline-step';
-    });
+    stepOrder.forEach(s => { const el = document.getElementById('step-' + s); if (el) el.className = 'pipeline-step'; });
   }
 
   const delay = ms => new Promise(r => setTimeout(r, ms));
