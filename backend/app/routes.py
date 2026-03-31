@@ -54,7 +54,7 @@ def upload():
 
         fraud_count = int(df_out['flag'].sum())
 
-        rows = df_out.head(200).to_dict(orient='records')
+        rows = df_out.to_dict(orient='records')
 
         return jsonify({
             'message':       'Fraud detection complete',
